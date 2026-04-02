@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: blu-live-clinic
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      securityContext:
+        fsGroup: 2000
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.28
+        command: ['sh', '-c', "until nslookup mongodb && nc -zvw1 mongodb 27017; do echo waiting for mongodb; sleep 2; done"]
+      containers:
+      - name: backend
+        image: docker.io/jonahirande/blu-live-clinic-backend:3.0.1
+        imagePullPolicy: Always
+        env:
+        - name: MONGO_URI
+          value: "mongodb://mongodb:27017/liveclinic"
+        ports:
+        - containerPort: 5000
+        livenessProbe:
+          httpGet:
+            path: /api/patients
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - name: backend-data
+          mountPath: /app/storage 
+      volumes:
+      - name: backend-data
+        persistentVolumeClaim:
+          claimName: backend-storage
