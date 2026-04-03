@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - 'k8s/**'
+      - 'manifests/**'
       - '.github/**'
 
 jobs:
@@ -24,17 +24,26 @@ jobs:
         run: |
           # Use the short git commit SHA as the image tag for uniqueness
           TAG=$(echo ${GITHUB_SHA} | cut -c1-7)
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/my-app:$TAG .
-          docker push ${{ secrets.DOCKER_USERNAME }}/my-app:$TAG
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+
+          docker build -t ${{secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG 
+          echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG ./db
+          docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Update Kubernetes Manifest
         run: |
-          # This edits your deployment.yaml file to use the brand new image tag
-          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/my-app:${{ env.IMAGE_TAG }}|g" k8s/deployment.yaml
-          
+          sed -i "s|image: .*frontend:.*|image: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:${{ env.IMAGE_TAG }}|g" manifests/frontend.yaml
+          sed -i "s|image: .*backend:.*|image: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:${{ env.IMAGE_TAG }}|g" manifests/backend.yaml
+          sed -i "s|image: .*db:.*|image: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:${{ env.IMAGE_TAG }}|g" manifests/db.yaml
+
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add k8s/deployment.yaml
+          git add blu-live-clinic/*
           git commit -m "chore: update image to ${{ env.IMAGE_TAG }} [skip ci]"
           git push
