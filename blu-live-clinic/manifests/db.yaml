@@ -19,7 +19,7 @@ spec:
       serviceAccountName: mongodb-sa
       containers:
       - name: mongodb
-        image: irande/blu-live-clinic-db:e2b277d
+        image: irande/blu-live-clinic-db:5fe0592
         command: ["mongod"]
         args: ["--dbpath=/data/db", "--bind_ip_all"]
         ports:
