@@ -28,15 +28,15 @@ jobs:
         run: |
           # Use the short git commit SHA as the image tag for uniqueness
           TAG=$(echo ${GITHUB_SHA} | cut -c1-7)
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG ./frontend
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG ./blu-live-clinic/frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
-          docker build -t ${{secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG ./backend
+          docker build -t ${{secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG ./blu-live-clinic/backend
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG 
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG ./db
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG ./blu-live-clinic/db
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
