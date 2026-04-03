@@ -6,7 +6,7 @@ on:
     paths-ignore:
       - 'blu-live-clinic/manifests/**'
       - '.github/**'
-  workflow_dispatch: # This enables the manual "Run workflow" button
+  workflow_dispatch: 
 
 jobs:
   build-and-push:
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to pull/rebase successfully
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -23,34 +25,32 @@ jobs:
 
       - name: Build and Push Images
         run: |
-          # Create short SHA tag
           TAG=$(echo ${GITHUB_SHA} | cut -c1-7)
           
-          # Build and Push Frontend
           docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG ./blu-live-clinic/frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG
 
-          # Build and Push Backend
           docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG ./blu-live-clinic/backend
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:$TAG 
 
-          # Build and Push DB
           docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG ./blu-live-clinic/db
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:$TAG
           
-          # Save tag for the next step
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Update Kubernetes Manifests
         run: |
-          # Search and replace tags in the manifests folder
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          
+          # Pull latest changes to avoid "rejected" error
+          git pull --rebase origin main
+
+          # Update the tags
           sed -i "s|image: .*frontend:.*|image: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:${{ env.IMAGE_TAG }}|g" blu-live-clinic/manifests/frontend.yaml
           sed -i "s|image: .*backend:.*|image: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:${{ env.IMAGE_TAG }}|g" blu-live-clinic/manifests/backend.yaml
           sed -i "s|image: .*db:.*|image: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:${{ env.IMAGE_TAG }}|g" blu-live-clinic/manifests/db.yaml
           
-          # Commit changes back to the repository
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
           git add blu-live-clinic/manifests/*.yaml
           git commit -m "chore: update images to ${{ env.IMAGE_TAG }} [skip ci]"
           git push
