@@ -22,7 +22,7 @@ jobs:
 
       - name: Build and Push Images
         run: |
-          TAG=$(echo ${GITHUB_SHA} | cut -c1-7)
+          TAG="v${{ github.run_number }}"
           
           docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG ./blu-live-clinic/frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG
@@ -40,7 +40,6 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           
-          # Force the runner to match exactly what is on GitHub right now
           git fetch origin main
           git reset --hard origin/main
 
@@ -51,5 +50,9 @@ jobs:
           
           # Add, commit, and push
           git add blu-live-clinic/manifests/*.yaml
-          git commit -m "chore: update images to ${{ env.IMAGE_TAG }} [skip ci]"
-          git push origin main
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: update images to ${{ env.IMAGE_TAG }} [skip ci]"
+            git push origin main
+          else
+            echo "No changes to manifests. Skipping commit."
+          fi
