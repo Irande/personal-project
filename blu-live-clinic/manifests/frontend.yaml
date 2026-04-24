@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: irande/blu-live-clinic-frontend:v7
+        image: irande/blu-live-clinic-frontend:v8
         ports:
         - containerPort: 80
