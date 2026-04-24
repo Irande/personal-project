@@ -24,6 +24,7 @@ jobs:
         run: |
           TAG="v${{ github.run_number }}"
           echo "Current Tag is: $TAG"
+          echo "Image build successfully"
           
           docker build -t ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG ./blu-live-clinic/frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:$TAG
