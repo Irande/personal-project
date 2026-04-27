@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const cors = require('cors');
-
-app.use(cors({
-  origin: '*', // For development in Codespaces, this is the easiest way to avoid blocks
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+const API = "http://backend-url-blu-live-clinic.apps.lab.ocp.bludive/api";
 
 const doctorPhotos = {
   "Faith Bitrus": "https://lh3.googleusercontent.com/d/140WAJOrcnvvZlj9Wb5WYXz1tj7vwWj8E", 
