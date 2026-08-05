@@ -7,7 +7,7 @@ on:
 
 jobs:
   # ----------------------------------------------------
-  # STAGE 1: Build & Push All 3 Images
+  # STAGE 1: Build & Push Images to Docker Hub
   # ----------------------------------------------------
   build-and-push:
     runs-on: ubuntu-latest
@@ -28,8 +28,8 @@ jobs:
       - name: Build and Push Frontend
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend  # Path to frontend Dockerfile/code directory
-          file: ./frontend/Dockerfile
+          context: ./blu-live-clinic/frontend
+          file: ./blu-live-clinic/frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:latest
 
@@ -37,46 +37,46 @@ jobs:
       - name: Build and Push Backend
         uses: docker/build-push-action@v5
         with:
-          context: ./backend   # Path to backend Dockerfile/code directory
-          file: ./backend/Dockerfile
+          context: ./blu-live-clinic/backend
+          file: ./blu-live-clinic/backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:latest
 
-      # 3. Build and Push DB (Customized DB Image)
+      # 3. Build and Push DB
       - name: Build and Push DB
         uses: docker/build-push-action@v5
         with:
-          context: ./db        # Path to DB Dockerfile/scripts directory
-          file: ./db/Dockerfile
+          context: ./blu-live-clinic/db
+          file: ./blu-live-clinic/db/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:latest
 
   # ----------------------------------------------------
-  # STAGE 2: Deploy All Containers via SSH
+  # STAGE 2: Deploy to Ubuntu Server via SSH
   # ----------------------------------------------------
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy Containers to Ubuntu Server
+      - name: Deploy Containers to Target Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Log in to Docker Hub on Target Server
+            # Authenticate to Docker Hub on target host
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            # Pull latest versions of all three images
+            # Pull fresh images
             docker pull ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:latest
 
-            # Create a shared Docker network for container communication if it doesn't exist
+            # Ensure overlay network exists
             docker network create clinic-network || true
 
-            # --- 1. Database Container ---
+            # --- Database Container ---
             docker stop clinic-db || true
             docker rm clinic-db || true
             docker run -d \
@@ -86,7 +86,7 @@ jobs:
               -v clinic_db_data:/var/lib/mysql \
               ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-db:latest
 
-            # --- 2. Backend Container ---
+            # --- Backend Container ---
             docker stop clinic-backend || true
             docker rm clinic-backend || true
             docker run -d \
@@ -96,7 +96,7 @@ jobs:
               -p 5000:5000 \
               ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-backend:latest
 
-            # --- 3. Frontend Container ---
+            # --- Frontend Container ---
             docker stop clinic-frontend || true
             docker rm clinic-frontend || true
             docker run -d \
@@ -106,5 +106,5 @@ jobs:
               -p 80:80 \
               ${{ secrets.DOCKER_USERNAME }}/blu-live-clinic-frontend:latest
 
-            # Clean up dangling/old images
+            # Cleanup unused dangling images
             docker image prune -f
