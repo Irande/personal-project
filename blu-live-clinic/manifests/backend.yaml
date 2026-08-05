@@ -21,7 +21,7 @@ spec:
         command: ['sh', '-c', "until nslookup mongodb && nc -zvw1 mongodb 27017; do echo waiting for mongodb; sleep 2; done"]
       containers:
       - name: backend
-        image: irande/blu-live-clinic-backend:v13
+        image: irande/blu-live-clinic-backend:v14
         imagePullPolicy: Always
         env:
         - name: MONGO_URI
